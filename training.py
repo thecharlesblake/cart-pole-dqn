@@ -110,7 +110,7 @@ class DqnTrainer:
         for i_episode in range(n_episodes):  # Per-episode loop
             print("Episode: {}".format(i_episode), end=', ')
 
-            state = current_screen = self.env.reset()
+            state = self.env.reset()
             step_losses, i_step, done = [], 0, False
             while not done:  # Per-step loop
                 action = self.action_selector.select_action(state)

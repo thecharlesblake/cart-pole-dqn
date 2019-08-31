@@ -2,6 +2,7 @@ import gym
 import torch
 from torch.optim.rmsprop import RMSprop
 
+from evaluator import Evaluator
 from myutil import seed_all
 from model import CNN
 from pixelwrapper import PixelWrapper
@@ -40,8 +41,11 @@ optimizer = RMSprop(policy_net.parameters())
 trainer = DqnTrainer(env, policy_net, target_net, optimizer, hyperparameters, device)
 
 # %% Run the training loop
-n_episodes = 20
+n_episodes = 40
 trainer.train(n_episodes)
+
+evaluator = Evaluator(env, policy_net, device)
+evaluator.run()
 
 # TODO:
 #
