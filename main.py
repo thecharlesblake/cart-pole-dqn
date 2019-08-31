@@ -38,7 +38,7 @@ target_net.eval()
 optimizer = RMSprop(policy_net.parameters())
 
 trainer = DqnTrainer(env, policy_net, target_net, optimizer, hyperparameters, device)
-trainer.debug = True
+#trainer.debug = True
 
 # %% Run the training loop
 n_episodes = 20

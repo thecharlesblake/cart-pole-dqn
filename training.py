@@ -97,10 +97,11 @@ class DqnTrainer:
             while not done:  # Per-step loop
                 action = self.action_selector.select_action(state)
 
-                screen, reward, done, _ = self.env.step(action.item())
+                next_state, reward, done, _ = self.env.step(action.item())
                 reward = torch.tensor([reward], device=self.device)
+                if done:
+                    next_state = None
 
-                next_state = screen - current_screen if not done else None
                 transition = Transition(state, action, next_state, reward)
                 self.replay_optimizer.add_transition(transition)
 
@@ -133,13 +134,13 @@ class DqnTrainer:
             plot(episode_durations, episode_losses)
             plt.show()
 
-    @staticmethod
-    def log_episode(transition, loss):
-        input()
-        plt.figure()
-        plt.imshow(transition.state.cpu().squeeze(0).permute(1, 2, 0).numpy(), interpolation='none')
-        plt.title('Example extracted screen')
-        plt.show()
+    def log_episode(self, transition, loss):
+        if self.debug:
+            input()
+            plt.figure()
+            plt.imshow(transition.state.cpu().squeeze(0).permute(1, 2, 0).numpy(), interpolation='none')
+            plt.title('Example extracted screen')
+            plt.show()
 
     @staticmethod
     def get_action_string(action):
