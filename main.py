@@ -52,8 +52,8 @@ trainer.train(n_episodes)
 # c) shift the architecture to make it close to the Atari paper
 
 # (a):
-# 1) GIT!
-# 2) Understand the loss fn
+# 1) GIT! :)
+# 2) Understand the loss fn :)
 # 3) Debug statements in relevant places so that I can run through the algo step by step for multiple episodes
 # 4) Figure out what I actually want to plot
 # 5) Figure out why my loss fn starts at 0 and goes up??

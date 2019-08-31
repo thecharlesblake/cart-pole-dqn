@@ -49,8 +49,9 @@ class ReplayDqnOptimizer:
 
         q1_max = torch.zeros(self.batch_size, device=self.device)
         q1_max[s1_non_final_mask] = self.q_max(s1)
+        y1 = r0 + self.gamma * q1_max
 
-        loss = F.smooth_l1_loss(r0 + self.gamma * q1_max, q0)
+        loss = F.smooth_l1_loss(y1, q0)
         # --- #
 
         self.optimize_loss(loss)
@@ -65,8 +66,8 @@ class ReplayDqnOptimizer:
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
 
-    def add_transition(self, *args):
-        self.memory.push(*args)
+    def add_transition(self, transition):
+        self.memory.push(transition)
 
 
 class DqnTrainer:
@@ -89,21 +90,24 @@ class DqnTrainer:
         episode_losses = []
 
         for i_episode in range(n_episodes):  # Per-episode loop
-            if self.debug:
-                print("Episode: {}".format(i_episode))
+            print("Episode: {}".format(i_episode), end=', ')
 
             state = current_screen = self.env.reset()
-            step_losses, i_step, done = [], 1, False
+            step_losses, i_step, done = [], 0, False
             while not done:  # Per-step loop
                 action = self.action_selector.select_action(state)
+
                 screen, reward, done, _ = self.env.step(action.item())
                 reward = torch.tensor([reward], device=self.device)
 
                 next_state = screen - current_screen if not done else None
-                self.replay_optimizer.add_transition(state, action, next_state, reward)
+                transition = Transition(state, action, next_state, reward)
+                self.replay_optimizer.add_transition(transition)
 
                 loss = self.replay_optimizer.optimize()
                 step_losses.append(loss)
+
+                self.log_episode(transition, loss)
 
                 state = next_state
                 i_step += 1
@@ -114,17 +118,29 @@ class DqnTrainer:
             if i_episode % self.hyperparameters['target_update'] == 0:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
 
-            if self.debug:
-                transitions_processed = self.replay_optimizer.batches_processed * self.hyperparameters['batch_size']
-                print("\tDuration: {}, Total transitions processed: {}".format(i_step, transitions_processed))
-                if i_episode % 100 == 0:
-                    clear_output()
-                    plot(episode_durations, episode_losses)
-                    plt.show()
+            transitions_processed = self.replay_optimizer.batches_processed * self.hyperparameters['batch_size']
+            print("Duration: {}, Mean loss: {:.2f}, Total transitions processed: {}"
+                  .format(i_step, np.mean(step_losses), transitions_processed))
+            if self.debug and i_episode % 100 == 0:
+                clear_output()
+                plot(episode_durations, episode_losses)
+                plt.show()
 
         self.env.close()
+        print('--- Training complete ---')
 
         if self.debug:
-            print('--- Training complete ---')
             plot(episode_durations, episode_losses)
             plt.show()
+
+    @staticmethod
+    def log_episode(transition, loss):
+        input()
+        plt.figure()
+        plt.imshow(transition.state.cpu().squeeze(0).permute(1, 2, 0).numpy(), interpolation='none')
+        plt.title('Example extracted screen')
+        plt.show()
+
+    @staticmethod
+    def get_action_string(action):
+        return 'Left' if action.item() == 0 else 'Right'
