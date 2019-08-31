@@ -7,6 +7,7 @@ import numpy as np
 from myutil import plot
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
+import random
 
 
 class ReplayDqnOptimizer:
@@ -19,6 +20,7 @@ class ReplayDqnOptimizer:
         self.gamma = gamma
         self.device = device
         self.batches_processed = 0
+        self.debug_dqn = False
 
     def get_transition_batches(self):
         transitions = self.memory.sample(self.batch_size)
@@ -56,6 +58,8 @@ class ReplayDqnOptimizer:
 
         self.optimize_loss(loss)
 
+        if self.debug_dqn:
+            self.log_batch(s0, a0, r0, s1, s1_non_final_mask, q0, q1_max, y1, loss, batch_sample_size=3)
         self.batches_processed += 1
         return loss.item()
 
@@ -68,6 +72,20 @@ class ReplayDqnOptimizer:
 
     def add_transition(self, transition):
         self.memory.push(transition)
+
+    def log_batch(self, s0, a0, r0, s1, s1_non_final_mask, q0, q1_max, y1, loss, batch_sample_size):
+        input()
+        batch_sample = random.sample(range(self.batch_size), batch_sample_size)
+        _s1 = torch.zeros((self.batch_size, s1.shape[1], s1.shape[2], s1.shape[3]), device=self.device)
+        _s1[s1_non_final_mask] = s1
+        for i in batch_sample:
+            s1_i = _s1[i] if s1_non_final_mask[i] else None
+            loss_i = F.smooth_l1_loss(y1[i], q0[i])
+            plot_states(s0[i], s1_i,
+                        "Batch: {},\nAction: {}\nReward: {}\nQ0: {:.2f}\nQ1_max: {:.2f}\nY1: {:.2f}\nLoss: {:.2f}"
+                        .format(self.batches_processed, get_action_string(a0[i]), r0[i].item(), q0[i].item(),
+                                q1_max[i].item(), y1[i].item(), loss_i.item()), offset=22)
+        print("Batch: {}, Loss: {}".format(self.batches_processed, loss))
 
 
 class DqnTrainer:
@@ -83,7 +101,7 @@ class DqnTrainer:
                                                    hyperparameters['gamma'], device)
         self.hyperparameters = hyperparameters
         self.device = device
-        self.debug = False
+        self.debug_episodes = False
 
     def train(self, n_episodes):
         episode_durations = []
@@ -108,7 +126,8 @@ class DqnTrainer:
                 loss = self.replay_optimizer.optimize()
                 step_losses.append(loss)
 
-                self.log_episode(transition, loss)
+                if self.debug_episodes:
+                    self.log_transition(transition)
 
                 state = next_state
                 i_step += 1
@@ -116,13 +135,15 @@ class DqnTrainer:
             episode_durations.append(i_step)
             episode_losses.append(np.mean(step_losses))
 
-            if i_episode % self.hyperparameters['target_update'] == 0:
-                self.target_net.load_state_dict(self.policy_net.state_dict())
-
             transitions_processed = self.replay_optimizer.batches_processed * self.hyperparameters['batch_size']
             print("Duration: {}, Mean loss: {:.2f}, Total transitions processed: {}"
                   .format(i_step, np.mean(step_losses), transitions_processed))
-            if self.debug and i_episode % 100 == 0:
+
+            if i_episode % self.hyperparameters['target_update'] == 0:
+                self.target_net.load_state_dict(self.policy_net.state_dict())
+                print("Target net updated")
+
+            if i_episode % 100 == 99:
                 clear_output()
                 plot(episode_durations, episode_losses)
                 plt.show()
@@ -130,18 +151,27 @@ class DqnTrainer:
         self.env.close()
         print('--- Training complete ---')
 
-        if self.debug:
-            plot(episode_durations, episode_losses)
-            plt.show()
+        plot(episode_durations, episode_losses)
+        plt.show()
 
-    def log_episode(self, transition, loss):
-        if self.debug:
-            input()
-            plt.figure()
-            plt.imshow(transition.state.cpu().squeeze(0).permute(1, 2, 0).numpy(), interpolation='none')
-            plt.title('Example extracted screen')
-            plt.show()
+    def log_transition(self, transition):
+        input()
+        plot_states(transition.state, transition.next_state,
+                    "Action: {}\nReward: {}".format(get_action_string(transition.action), transition.reward.item()))
 
-    @staticmethod
-    def get_action_string(action):
-        return 'Left' if action.item() == 0 else 'Right'
+
+def plot_states(s0, s1, text, offset=7):
+    plt.figure()
+    plt.subplot(2, 1, 1)
+    plt.text(2, offset, text)
+    plot_state(s0)
+    if s1 is not None:
+        plt.subplot(2, 1, 2)
+        plot_state(s1)
+    plt.show()
+
+def plot_state(state):
+    plt.imshow(state.cpu().squeeze(0).permute(1, 2, 0).numpy(), interpolation='none')
+
+def get_action_string(action):
+    return 'Left' if action.item() == 0 else 'Right'

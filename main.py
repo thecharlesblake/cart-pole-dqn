@@ -38,7 +38,6 @@ target_net.eval()
 optimizer = RMSprop(policy_net.parameters())
 
 trainer = DqnTrainer(env, policy_net, target_net, optimizer, hyperparameters, device)
-#trainer.debug = True
 
 # %% Run the training loop
 n_episodes = 20
@@ -54,10 +53,9 @@ trainer.train(n_episodes)
 # (a):
 # 1) GIT! :)
 # 2) Understand the loss fn :)
-# 3) Debug statements in relevant places so that I can run through the algo step by step for multiple episodes
-# 4) Figure out what I actually want to plot
-# 5) Figure out why my loss fn starts at 0 and goes up??
-# 6) Make sure that generally all parts of the program are doing what I expect and the debug mode demonstrates this
+# 3) Debug statements in relevant places so that I can run through the algo step by step for multiple episodes :)
+# 4) Figure out what I actually want to plot :)
+# 6) Make sure that generally all parts of the program are doing what I expect and the debug mode demonstrates this :)
 
 # (b): some ideas
 # 1) Get it easily working and transferable to colab
