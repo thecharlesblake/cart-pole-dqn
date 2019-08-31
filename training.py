@@ -136,12 +136,11 @@ class DqnTrainer:
             episode_losses.append(np.mean(step_losses))
 
             transitions_processed = self.replay_optimizer.batches_processed * self.hyperparameters['batch_size']
-            print("Duration: {}, Mean loss: {:.2f}, Total transitions processed: {}"
-                  .format(i_step, np.mean(step_losses), transitions_processed))
+            print("Duration: {}, Mean loss: {:.2f}, Replay memory used: {}"
+                  .format(i_step, np.mean(step_losses), len(self.replay_optimizer.memory)))
 
             if i_episode % self.hyperparameters['target_update'] == 0:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
-                print("Target net updated")
 
             if i_episode % 100 == 99:
                 clear_output()

@@ -24,9 +24,10 @@ class PixelWrapper(Wrapper):
                             T.ToTensor()])
 
         def get_cart_location(screen_width):
-            world_width = self.env.x_threshold * 2
+            env = self.env.unwrapped
+            world_width = env.x_threshold * 2
             scale = screen_width / world_width
-            return int(self.env.state[0] * scale + screen_width / 2.0)  # MIDDLE OF CART
+            return int(env.state[0] * scale + screen_width / 2.0)  # MIDDLE OF CART
 
         # Returned screen requested by gym is 400x600x3, but is sometimes larger
         # such as 800x1200x3. Transpose it into torch order (CHW).
