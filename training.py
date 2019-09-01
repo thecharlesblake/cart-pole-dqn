@@ -43,7 +43,7 @@ class ReplayDqnOptimizer:
 
     def optimize(self):
         if len(self.memory) < self.batch_size:
-            return 0
+            return 0, 0
         s0, a0, r0, s1, s1_non_final_mask = self.get_transition_batches()
 
         # -- The Q-learning algorithm -- #
@@ -61,7 +61,7 @@ class ReplayDqnOptimizer:
         if self.debug_dqn:
             self.log_batch(s0, a0, r0, s1, s1_non_final_mask, q0, q1_max, y1, loss, batch_sample_size=3)
         self.batches_processed += 1
-        return loss.item()
+        return loss.item(), q1_max.mean().item()
 
     def optimize_loss(self, loss):
         self.optimizer.zero_grad()
@@ -102,16 +102,15 @@ class DqnTrainer:
         self.hyperparameters = hyperparameters
         self.device = device
         self.debug_episodes = False
+        self.replay_full_episode = None
 
     def train(self, n_episodes):
-        episode_durations = []
-        episode_losses = []
-
+        episode_durations, episode_losses, episode_rewards, episode_q_values = [], [], [], []
         for i_episode in range(n_episodes):  # Per-episode loop
             print("Episode: {}".format(i_episode), end=', ')
 
             state = self.env.reset()
-            step_losses, i_step, done = [], 0, False
+            step_losses, step_rewards, step_q_values, i_step, done = [], [], [], 0, False
             while not done:  # Per-step loop
                 action = self.action_selector.select_action(state)
 
@@ -123,8 +122,11 @@ class DqnTrainer:
                 transition = Transition(state, action, next_state, reward)
                 self.replay_optimizer.add_transition(transition)
 
-                loss = self.replay_optimizer.optimize()
+                loss, average_q_value = self.replay_optimizer.optimize()
+
                 step_losses.append(loss)
+                step_rewards.append(reward)
+                step_q_values.append(average_q_value)
 
                 if self.debug_episodes:
                     self.log_transition(transition)
@@ -134,24 +136,25 @@ class DqnTrainer:
 
             episode_durations.append(i_step)
             episode_losses.append(np.mean(step_losses))
+            episode_rewards.append(np.sum(step_rewards))
+            episode_q_values.append(np.mean(step_q_values))
 
-            transitions_processed = self.replay_optimizer.batches_processed * self.hyperparameters['batch_size']
-            print("Duration: {}, Mean loss: {:.2f}, Replay memory used: {}"
-                  .format(i_step, np.mean(step_losses), len(self.replay_optimizer.memory)))
+            if self.replay_optimizer.memory.at_capacity() and self.replay_full_episode is None:
+                self.replay_full_episode = i_episode
+
+            print("Duration: {}, Mean loss: {:.2f}".format(i_step, np.mean(step_losses)))
 
             if i_episode % self.hyperparameters['target_update'] == 0:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
 
-            if i_episode % 100 == 99:
+            if i_episode % 12 == 11:
                 clear_output()
-                plot(episode_durations, episode_losses)
-                plt.show()
+                plot(episode_durations, episode_losses, episode_rewards, episode_q_values, self.replay_full_episode)
 
         self.env.close()
         print('--- Training complete ---')
 
-        plot(episode_durations, episode_losses)
-        plt.show()
+        plot(episode_durations, episode_losses, episode_rewards, episode_q_values, self.replay_full_episode)
 
     def log_transition(self, transition):
         input()

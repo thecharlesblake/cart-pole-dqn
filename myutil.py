@@ -12,21 +12,31 @@ def seed_all(seed, env=None):
         env.seed(seed)
 
 
-def plot(episode_durations, episode_losses):
-    durations_t = torch.tensor(episode_durations, dtype=torch.float)
-    loss_t = torch.tensor(episode_losses, dtype=torch.float)
+def plot(episode_durations, episode_losses, episode_rewards, episode_q_values, replay_full_episode=None, average_sz=10):
+    def get_means(values):
+        return torch.cat((torch.zeros(average_sz - 1), torch.tensor(values, dtype=torch.float).unfold(0, average_sz, 1)
+                          .mean(1).view(-1)))
 
-    fig, ax1 = plt.subplots()
+    if len(episode_durations) >= average_sz:
+        reward_means = get_means(episode_rewards)
+        loss_means = get_means(episode_losses)
+        q_value_means = get_means(episode_q_values)
 
-    ax2 = ax1.twinx()
-    ax1.plot(durations_t.numpy(), 'g-')
-    ax2.plot(loss_t.numpy(), 'b-')
+        fig, ax1 = plt.subplots()
 
-    ax1.set_xlabel('Episode / Batch')
-    ax1.set_ylabel('Steps', color='g')
-    ax2.set_ylabel('Loss', color='b')
-    # Take 100 episode averages and plot them too
-    # if len(durations_t) >= 100:
-    #    means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-    #    means = torch.cat((torch.zeros(99), means))
-    #    plt.plot(means.numpy())
+        ax2 = ax1.twinx()
+        ax1.plot(reward_means.numpy(), 'b-', label='Actual reward')
+        ax1.plot(q_value_means.numpy(), 'c-', label='Max action values')
+        ax2.plot(loss_means.numpy(), 'y-')
+
+        ax1.set_xlim(average_sz)
+        ax1.set_xlabel('Episode')
+        ax1.set_ylabel('Reward', color='b')
+        ax2.set_ylabel('Loss', color='y')
+
+        fig.legend(loc='upper center')
+
+        if replay_full_episode:
+            plt.axvline(x=replay_full_episode, color='r')
+
+        plt.show()

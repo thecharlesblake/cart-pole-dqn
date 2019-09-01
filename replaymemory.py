@@ -17,5 +17,8 @@ class ReplayMemory:
     def sample(self, batch_size):
         return random.sample(self.memory, batch_size)
 
+    def at_capacity(self):
+        return len(self.memory) == self.capacity
+
     def __len__(self):
         return len(self.memory)

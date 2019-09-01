@@ -26,7 +26,7 @@ myutil.seed_all(0, env)
 
 # %% DQN setup
 hyperparameters = {
-    "batch_size": 128,
+    "batch_size": 64,
     "gamma": 0.999,
     "eps_start": 0.9,
     "eps_end": 0.05,
@@ -49,7 +49,7 @@ optimizer = RMSprop(policy_net.parameters())
 trainer = training.DqnTrainer(env, policy_net, target_net, optimizer, hyperparameters, device)
 
 # %% Run the training loop
-n_episodes = 40
+n_episodes = 400
 trainer.train(n_episodes)
 
 evaluator = evaluator.Evaluator(env, policy_net, device)
@@ -71,7 +71,7 @@ evaluator.run()
 
 # (b): some ideas
 # 1) Get it easily working and transferable to colab :)
-# 1.5) Vertical line when replay memory filled (remove text log), make duration an average of 10-30
+# 1.5) Vertical line when replay memory filled (remove text log), make duration an average of 10-30 :)
 # 2) Record some initial benchmarks (and keep testing against them!!)
 # 3) Get system ready where experimental changes can be toggled while implementing
 # luminescense thing
@@ -79,4 +79,8 @@ evaluator.run()
 # not moving image
 # square image
 # linear epsilon drop
+# rate of consuming replay buffer indep of episode steps
 # other things to align with atari paper
+
+# Benchmarks: (episode, duration, loss)
+# initial-basic-algo: score=37.5, learning=q-value plateau after 100 episodes, reward and loss all over the place
