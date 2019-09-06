@@ -8,6 +8,7 @@ from myutil import plot
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
 import random
+from time import time
 
 
 class ReplayDqnOptimizer:
@@ -81,7 +82,7 @@ class ReplayDqnOptimizer:
         for i in batch_sample:
             s1_i = _s1[i] if s1_non_final_mask[i] else None
             loss_i = F.smooth_l1_loss(y1[i], q0[i])
-            plot_states(s0[i], s1_i,
+            plot_states(s0[i].unsqueeze(0), s1_i.unsqueeze(0),
                         "Batch: {},\nAction: {}\nReward: {}\nQ0: {:.2f}\nQ1_max: {:.2f}\nY1: {:.2f}\nLoss: {:.2f}"
                         .format(self.batches_processed, get_action_string(a0[i]), r0[i].item(), q0[i].item(),
                                 q1_max[i].item(), y1[i].item(), loss_i.item()), offset=22)
@@ -105,6 +106,7 @@ class DqnTrainer:
         self.replay_full_episode = None
 
     def train(self, n_episodes):
+        start_time = time()
         episode_durations, episode_losses, episode_rewards, episode_q_values = [], [], [], []
         for i_episode in range(n_episodes):  # Per-episode loop
             print("Episode: {}".format(i_episode), end=', ')
@@ -142,7 +144,7 @@ class DqnTrainer:
             if self.replay_optimizer.memory.at_capacity() and self.replay_full_episode is None:
                 self.replay_full_episode = i_episode
 
-            print("Duration: {}, Mean loss: {:.2f}".format(i_step, np.mean(step_losses)))
+            print("Reward: {}, Mean q1 value: {:.2f}".format(np.sum(step_rewards).item(), np.mean(step_q_values).item()))
 
             if i_episode % self.hyperparameters['target_update'] == 0:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -152,7 +154,7 @@ class DqnTrainer:
                 plot(episode_durations, episode_losses, episode_rewards, episode_q_values, self.replay_full_episode)
 
         self.env.close()
-        print('--- Training complete ---')
+        print('--- Training complete in {:.2f} seconds ---'.format(time() - start_time))
 
         plot(episode_durations, episode_losses, episode_rewards, episode_q_values, self.replay_full_episode)
 
@@ -164,12 +166,20 @@ class DqnTrainer:
 
 def plot_states(s0, s1, text, offset=7):
     plt.figure()
-    plt.subplot(2, 1, 1)
+    plt.subplot(3, 2, 1)
     plt.text(2, offset, text)
-    plot_state(s0)
+    plot_state(s0[:,:3])
+    plt.subplot(3, 2, 3)
+    plot_state(s0[:,3:6])
+    plt.subplot(3, 2, 5)
+    plot_state(s0[:,6:9])
     if s1 is not None:
-        plt.subplot(2, 1, 2)
-        plot_state(s1)
+        plt.subplot(3, 2, 2)
+        plot_state(s1[:,:3])
+        plt.subplot(3, 2, 4)
+        plot_state(s1[:,3:6])
+        plt.subplot(3, 2, 6)
+        plot_state(s1[:,6:9])
     plt.show()
 
 def plot_state(state):

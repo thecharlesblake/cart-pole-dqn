@@ -3,22 +3,31 @@ from PIL import Image
 import torchvision.transforms as T
 import numpy as np
 import torch
+from collections import deque
 
 
 class PixelWrapper(Wrapper):
-    def __init__(self, env, device):
+    def __init__(self, env, device, n_state_frames, n_channels):
         super().__init__(env)
         self.device = device
+        self.n_state_frames = n_state_frames
+        self.n_channlels = n_channels
+        self.frame_memory = None
 
     def reset(self):
         super().reset()
-        return self.__get_screen()
+        frame = self.get_frame()
+        self.frame_memory = frame.repeat(1, self.n_state_frames, 1, 1)
+        return self.frame_memory
 
     def step(self, action):
         _, reward, done, info = super().step(action)
-        return self.__get_screen(), reward, done, info
+        frame = self.get_frame()
+        self.frame_memory = self.frame_memory[:, self.n_channlels:]
+        self.frame_memory = torch.cat([self.frame_memory, frame], dim=1)
+        return self.frame_memory, reward, done, info
 
-    def __get_screen(self):
+    def get_frame(self):
         resize = T.Compose([T.ToPILImage(),
                             T.Resize(40, interpolation=Image.CUBIC),
                             T.ToTensor()])
@@ -53,6 +62,6 @@ class PixelWrapper(Wrapper):
         # (this doesn't require a copy)
         screen = np.ascontiguousarray(screen, dtype=np.float32) / 255
         screen = torch.from_numpy(screen)
-        # Resize, and add a batch dimension (BCHW)
+        # Resize and add batch dimension
 
         return resize(screen).unsqueeze(0).to(self.device)
