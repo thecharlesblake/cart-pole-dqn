@@ -82,7 +82,7 @@ class ReplayDqnOptimizer:
         for i in batch_sample:
             s1_i = _s1[i] if s1_non_final_mask[i] else None
             loss_i = F.smooth_l1_loss(y1[i], q0[i])
-            plot_states(s0[i].unsqueeze(0), s1_i.unsqueeze(0),
+            plot_states(s0[i].unsqueeze(0), s1_i.unsqueeze(0) if s1_i is not None else None,
                         "Batch: {},\nAction: {}\nReward: {}\nQ0: {:.2f}\nQ1_max: {:.2f}\nY1: {:.2f}\nLoss: {:.2f}"
                         .format(self.batches_processed, get_action_string(a0[i]), r0[i].item(), q0[i].item(),
                                 q1_max[i].item(), y1[i].item(), loss_i.item()), offset=22)
@@ -168,22 +168,22 @@ def plot_states(s0, s1, text, offset=7):
     plt.figure()
     plt.subplot(3, 2, 1)
     plt.text(2, offset, text)
-    plot_state(s0[:,:3])
+    plot_state(s0[:,0])
     plt.subplot(3, 2, 3)
-    plot_state(s0[:,3:6])
+    plot_state(s0[:,1])
     plt.subplot(3, 2, 5)
-    plot_state(s0[:,6:9])
+    plot_state(s0[:,2])
     if s1 is not None:
         plt.subplot(3, 2, 2)
-        plot_state(s1[:,:3])
+        plot_state(s1[:,0])
         plt.subplot(3, 2, 4)
-        plot_state(s1[:,3:6])
+        plot_state(s1[:,1])
         plt.subplot(3, 2, 6)
-        plot_state(s1[:,6:9])
+        plot_state(s1[:,2])
     plt.show()
 
 def plot_state(state):
-    plt.imshow(state.cpu().squeeze(0).permute(1, 2, 0).numpy(), interpolation='none')
+    plt.imshow(state.cpu().squeeze(0).numpy(), interpolation='none')
 
 def get_action_string(action):
     return 'Left' if action.item() == 0 else 'Right'

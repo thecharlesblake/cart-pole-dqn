@@ -7,7 +7,7 @@ from collections import deque
 
 
 class PixelWrapper(Wrapper):
-    def __init__(self, env, device, n_state_frames, n_channels):
+    def __init__(self, env, device, n_state_frames, n_channels=1):
         super().__init__(env)
         self.device = device
         self.n_state_frames = n_state_frames
@@ -29,6 +29,7 @@ class PixelWrapper(Wrapper):
 
     def get_frame(self):
         resize = T.Compose([T.ToPILImage(),
+                            lambda i : i.convert("L"),
                             T.Resize(40, interpolation=Image.CUBIC),
                             T.ToTensor()])
 

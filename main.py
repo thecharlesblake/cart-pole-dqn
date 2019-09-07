@@ -29,15 +29,15 @@ hyperparameters = {
 }
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-env = pixelwrapper.PixelWrapper(gym.make('CartPole-v0'), device, hyperparameters["state_frame_count"], 3)
+env = pixelwrapper.PixelWrapper(gym.make('CartPole-v0'), device, hyperparameters["state_frame_count"])
 myutil.seed_all(0, env)
 
 init_obs = env.reset()
 _, _, h, w = init_obs.shape
 n_actions = env.action_space.n
 
-policy_net = model.CNN(3 * hyperparameters["state_frame_count"], h, w, n_actions).to(device)
-target_net = model.CNN(3 * hyperparameters["state_frame_count"], h, w, n_actions).to(device)
+policy_net = model.CNN(hyperparameters["state_frame_count"], h, w, n_actions).to(device)
+target_net = model.CNN(hyperparameters["state_frame_count"], h, w, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
@@ -54,9 +54,9 @@ evaluator.run()
 
 # TODO:
 # extract the Y channel (luminance) from the RGB frame
-# not moving image
-# similar hyperparameter values (parameterise optimizer) - then experiment
+# not moving image / whole screen
 # scale & square image? (84x84)
+# similar hyperparameter values (parameterise optimizer) - then experiment
 # same CNN arch (see below)
 # linear epsilon drop
 # replay start size different to batch size
@@ -81,3 +81,4 @@ evaluator.run()
 # initial-basic-algo: score=37.5, time=210s, learning=q-value plateau after 100 episodes, reward and loss all over the place
 # stacked-frames-1: score=15.45, time=354s, max mem issues, overfitting, q1 going mad & actual reward dropping, some very good episodes though
 # stacked-frames-2: score=61.58, time=432s, fixed max mem issues, much better! Success seems quite binary - v long or v short episodes
+# 1-channel: score=48.16, time=141s, no obvious drop in quality but huge jump in speed!
