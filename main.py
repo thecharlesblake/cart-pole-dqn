@@ -53,9 +53,7 @@ evaluator = evaluator.Evaluator(env, policy_net, device)
 evaluator.run()
 
 # TODO:
-# extract the Y channel (luminance) from the RGB frame
 # not moving image / whole screen
-# scale & square image? (84x84)
 # similar hyperparameter values (parameterise optimizer) - then experiment
 # same CNN arch (see below)
 # linear epsilon drop
@@ -77,8 +75,9 @@ evaluator.run()
 # Paper things I'm not doing:
 # Clipping rewards, multiple steps per action
 
-# Benchmarks: (episode, duration, loss)
+# Benchmarks:
 # initial-basic-algo: score=37.5, time=210s, learning=q-value plateau after 100 episodes, reward and loss all over the place
 # stacked-frames-1: score=15.45, time=354s, max mem issues, overfitting, q1 going mad & actual reward dropping, some very good episodes though
 # stacked-frames-2: score=61.58, time=432s, fixed max mem issues, much better! Success seems quite binary - v long or v short episodes
 # 1-channel: score=48.16, time=141s, no obvious drop in quality but huge jump in speed!
+# whole-frame: score=48.29, time=316s, time inc but still about as good as 3-channel, bad eps gone (presumably because no centring), q dipping after a while (over-training??)
