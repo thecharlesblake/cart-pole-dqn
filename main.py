@@ -18,14 +18,15 @@ training = reload(training)
 
 # %% Setup
 hyperparameters = {
-    "batch_size": 64,
+    "batch_size": 32,
     "gamma": 0.999,
     "eps_start": 0.9,
     "eps_end": 0.05,
     "eps_decay": 500,
-    "target_update": 10,
+    "target_update": 500,
+    "update_frequency": 1,
     "replay_memory_size": 100000,
-    "state_frame_count": 3
+    "state_frame_count": 3,
 }
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -53,24 +54,12 @@ evaluator = evaluator.Evaluator(env, policy_net, device)
 evaluator.run()
 
 # TODO:
-# not moving image / whole screen
-# similar hyperparameter values (parameterise optimizer) - then experiment
-# same CNN arch (see below)
+# try square loss
 # linear epsilon drop
 # replay start size different to batch size
-# try square loss
-# try rmsprop vs adam
-# clipping error term
+# clipping error term (plus gradients?)
+# no batch norm
 # experiment again with hyperparameter values
-
-# . The input to
-# the neural network consists of an 843 843 4 image produced by the preprocessing map w. The first hidden layer
-# convolves 32 filters of 8 3 8 with stride 4with the
-# input image and applies a rectifier nonlinearity31,32
-# . The second hidden layer convolves 64 filters of 4 3 4 with stride 2, again followed by a rectifier nonlinearity.
-# Thisisfollowed by a third convolutional layerthat convolves 64 filters of 3 3 3with
-# stride 1 followed by a rectifier. The final hidden layer is fully-connected and consists of 512 rectifier units. The
-# output layer is a fully-connected linear layer with a single output for each valid action
 
 # Paper things I'm not doing:
 # Clipping rewards, multiple steps per action

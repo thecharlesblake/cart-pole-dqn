@@ -54,7 +54,7 @@ class ReplayDqnOptimizer:
         q1_max[s1_non_final_mask] = self.q_max(s1)
         y1 = r0 + self.gamma * q1_max
 
-        loss = F.smooth_l1_loss(y1, q0)
+        loss = F.mse_loss(y1, q0)
         # --- #
 
         self.optimize_loss(loss)
@@ -107,9 +107,8 @@ class DqnTrainer:
 
     def train(self, n_episodes):
         start_time = time()
-        episode_durations, episode_losses, episode_rewards, episode_q_values = [], [], [], []
+        episode_durations, episode_losses, episode_rewards, episode_q_values, total_steps = [], [], [], [], 0
         for i_episode in range(n_episodes):  # Per-episode loop
-            print("Episode: {}".format(i_episode), end=', ')
 
             state = self.env.reset()
             step_losses, step_rewards, step_q_values, i_step, done = [], [], [], 0, False
@@ -124,17 +123,22 @@ class DqnTrainer:
                 transition = Transition(state, action, next_state, reward)
                 self.replay_optimizer.add_transition(transition)
 
-                loss, average_q_value = self.replay_optimizer.optimize()
-
-                step_losses.append(loss)
+                if total_steps % self.hyperparameters['update_frequency'] == 0:
+                    loss, average_q_value = self.replay_optimizer.optimize()
+                    step_losses.append(loss)
+                    step_q_values.append(average_q_value)
                 step_rewards.append(reward)
-                step_q_values.append(average_q_value)
+
+                if total_steps % self.hyperparameters['target_update'] * self.hyperparameters['update_frequency'] == 0:
+                    print("(target update)")
+                    self.target_net.load_state_dict(self.policy_net.state_dict())
 
                 if self.debug_episodes:
                     self.log_transition(transition)
 
                 state = next_state
                 i_step += 1
+                total_steps += 1
 
             episode_durations.append(i_step)
             episode_losses.append(np.mean(step_losses))
@@ -144,10 +148,8 @@ class DqnTrainer:
             if self.replay_optimizer.memory.at_capacity() and self.replay_full_episode is None:
                 self.replay_full_episode = i_episode
 
-            print("Reward: {}, Mean q1 value: {:.2f}".format(np.sum(step_rewards).item(), np.mean(step_q_values).item()))
-
-            if i_episode % self.hyperparameters['target_update'] == 0:
-                self.target_net.load_state_dict(self.policy_net.state_dict())
+            print("Episode: {}, Reward: {}, Mean q1 value: {:.2f}"
+                  .format(i_episode, np.sum(step_rewards).item(), np.mean(step_q_values).item()))
 
             if i_episode % 12 == 11:
                 clear_output()
