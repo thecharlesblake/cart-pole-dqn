@@ -19,10 +19,10 @@ training = reload(training)
 # %% Setup
 hyperparameters = {
     "batch_size": 32,
-    "gamma": 0.999,
+    "gamma": 0.99,
     "eps_start": 0.9,
     "eps_end": 0.05,
-    "eps_decay": 500,
+    "eps_steps": 300,
     "target_update": 500,
     "update_frequency": 1,
     "replay_memory_size": 100000,
@@ -54,8 +54,6 @@ evaluator = evaluator.Evaluator(env, policy_net, device)
 evaluator.run()
 
 # TODO:
-# try square loss
-# linear epsilon drop
 # replay start size different to batch size
 # clipping error term (plus gradients?)
 # no batch norm

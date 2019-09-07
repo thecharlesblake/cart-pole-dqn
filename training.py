@@ -96,7 +96,7 @@ class DqnTrainer:
         self.target_net = target_net
         self.optimizer = optimizer
         self.action_selector = ActionSelector(policy_net, env.action_space.n, hyperparameters['eps_start'],
-                                              hyperparameters['eps_end'], hyperparameters['eps_decay'], device)
+                                              hyperparameters['eps_end'], hyperparameters['eps_steps'], device)
         self.replay_optimizer = ReplayDqnOptimizer(policy_net, target_net, optimizer,
                                                    hyperparameters['replay_memory_size'], hyperparameters['batch_size'],
                                                    hyperparameters['gamma'], device)
@@ -148,8 +148,9 @@ class DqnTrainer:
             if self.replay_optimizer.memory.at_capacity() and self.replay_full_episode is None:
                 self.replay_full_episode = i_episode
 
-            print("Episode: {}, Reward: {}, Mean q1 value: {:.2f}"
-                  .format(i_episode, np.sum(step_rewards).item(), np.mean(step_q_values).item()))
+            print("Episode: {}, Reward: {}, Mean q1 value: {:.2f}, Steps: {}, Epsilon: {:.2f}"
+                  .format(i_episode, np.sum(step_rewards).item(), np.mean(step_q_values).item(),
+                          total_steps, self.action_selector.eps_threshold))
 
             if i_episode % 12 == 11:
                 clear_output()
